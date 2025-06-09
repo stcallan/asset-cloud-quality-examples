@@ -1,93 +1,49 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+﻿using System.Threading.Tasks;
+using FluentAssertions;
 using Rebus.Activation;
-using Rebus.Bus;
 using Rebus.Config;
-using Rebus.Handlers;
-using Rebus.Routing.TypeBased;
 using Rebus.Transport.InMem;
 using Xunit;
 
 namespace RebusMicroservice.Tests
 {
-    public class MicroserviceInMemoryRebusTest : IAsyncLifetime, IDisposable
+    public class MicroserviceInMemoryRebusTest(RebusHostFixture fixture) : IClassFixture<RebusHostFixture>
+
     {
-        private IHost _host = null!;
-        private InMemNetwork _network = null!;
-        private IBus _inputBus = null!;
-        private bool _disposed;
-
-        public async Task InitializeAsync()
-        {
-            _network = new InMemNetwork();
-
-            _host = Host.CreateDefaultBuilder()
-                .ConfigureServices(services =>
-                {
-                    // Register Rebus with in-memory transport for input queue
-                    services.AddRebus(configure => configure
-                       .Transport(t => t.UseInMemoryTransport(_network, "input-queue"))
-                       .Routing(r => r.TypeBased()
-                           .Map<InputMessage>("input-queue")
-                           .Map<ProcessedMessage>("output-queue"))
-                   );
-
-                    // Register your handler exactly as in your microservice
-                    services.AddTransient<IHandleMessages<InputMessage>, MessageProcessor>();
-                })
-                .Build();
-
-            await _host.StartAsync();
-
-            // Get Rebus bus to send input messages
-            _inputBus = _host.Services.GetRequiredService<IBus>();
-        }
+        readonly RebusHostFixture _fixture = fixture;
 
         [Fact]
-        public async Task MicroserviceProcessesMessageAndSendsToOutputQueue()
+        public async Task ProcessesMessageAndSendsToOutputQueue()
         {
-            ProcessedMessage? receivedProcessedMessage = null;
+            // GIVEN
+            // set up a Rebus listener on the output queue
+            ProcessedMessage? receivedMessage = null;
+            var outputActivator = new BuiltinHandlerActivator();
+            outputActivator.Handle<ProcessedMessage>(msg => { receivedMessage = msg; return Task.CompletedTask; });
 
-            // Setup separate activator and bus for output queue listening
-            using var outputActivator = new BuiltinHandlerActivator();
-            outputActivator.Handle<ProcessedMessage>(async msg =>
-            {
-                receivedProcessedMessage = msg;
-                await Task.CompletedTask;
-            });
-
-            using var outputBus = Configure.With(outputActivator)
-                .Transport(t => t.UseInMemoryTransport(_network, "output-queue"))
+            var outputBus = Configure.With(outputActivator)
+                .Transport(t => t.UseInMemoryTransport(_fixture.Network, "output-queue"))
                 .Start();
 
-            // Send the input message to input queue, microservice handler should pick it up
-            await _inputBus.Send(new InputMessage { Text = "hello" });
-
-            // Wait some time for message processing
-            await Task.Delay(500);
-
-            Assert.NotNull(receivedProcessedMessage);
-            Assert.Equal("hello-processed", receivedProcessedMessage!.Text);
-        }
-
-        public async Task DisposeAsync()
-        {
-            Dispose();
-            if (_host is not null)
+            try
             {
-                await _host.StopAsync();
-                _host.Dispose();
+                // WHEN
+                // we send a message to the input queue
+                await _fixture.HostBus.Send(new InputMessage { Text = "hello" });
+
+                var timeout = Task.Delay(5000);
+
+                while (receivedMessage == null && !timeout.IsCompleted)
+                    await Task.Delay(50);
+
+                // THEN
+                receivedMessage.Should().NotBeNull("Expected a message to be received on the output queue, but none was received within the timeout period.");
+                receivedMessage!.Text.Should().Be("hello-processed");
             }
-        }
-
-        public void Dispose()
-        {
-            if (!_disposed)
+            finally
             {
-                _disposed = true;
-                GC.SuppressFinalize(this);
+                outputBus.Dispose();
+                outputActivator.Dispose();
             }
         }
     }
