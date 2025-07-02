@@ -2,11 +2,11 @@ using Rebus.Handlers;
 using Rebus.Bus;
 using System.Threading.Tasks;
 
-public class MessageProcessor : IHandleMessages<InputMessage>
+public class RebusMessageProcessor : IHandleMessages<InputMessage>
 {
     private readonly IBus _bus;
 
-    public MessageProcessor(IBus bus)
+    public RebusMessageProcessor(IBus bus)
     {
         _bus = bus;
     }

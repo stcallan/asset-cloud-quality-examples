@@ -27,7 +27,7 @@ public class RebusHostFixture : IAsyncLifetime
                         .Map<InputMessage>("input-queue")
                         .Map<ProcessedMessage>("output-queue"))
                 );
-                services.AddTransient<IHandleMessages<InputMessage>, MessageProcessor>();
+                services.AddTransient<IHandleMessages<InputMessage>, RebusMessageProcessor>();
             })
             .Build();
 

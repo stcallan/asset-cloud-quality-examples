@@ -25,7 +25,10 @@ public class Program
                     .Routing(r => r.TypeBased().Map<ProcessedMessage>(outputQueue))
             );
 
-            services.AddTransient<IHandleMessages<InputMessage>, MessageProcessor>();
+            services.AddTransient<IHandleMessages<InputMessage>, RebusMessageProcessor>();
+
+            services.AddHostedService<ServiceBusMessageProcessor>();
+
         });
 
         var app = builder.Build();
