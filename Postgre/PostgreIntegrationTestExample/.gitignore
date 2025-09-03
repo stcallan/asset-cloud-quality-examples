@@ -1,0 +1,82 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Build Results
+[Dd]ebug/
+[Rr]elease/
+build/
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/packages/*
+# except build/, which is used as an MSBuild target.
+!**/packages/build/
+
+# Others
+*.log
+*.tlog
+*.cache
+*.pdb
+*.mdb
+*.dbmdl
+*.bak
+*.swp
+*.tmp
+*.vspscc
+*.vssscc
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# DotCover
+*.dotCover
+
+# User-specific files
+*.rsuser
+*.sln.docstates
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Azure
+*.azurepubxml
+*.publishsettings
+
+# Entity Framework
+*.jfm
+
+# node.js
+node_modules/
+
+# npm
+npm-debug.log
+
+# Yarn
+.yarn/
+.yarnrc
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
