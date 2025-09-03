@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using PostgreIntegrationTestExample.Models;
 using FluentAssertions;
+using System.Threading.Tasks;
+using Xunit;
 
 public class UsersApiTest(UsersApiTestFixture fixture) : IClassFixture<UsersApiTestFixture>
 {
@@ -10,12 +12,15 @@ public class UsersApiTest(UsersApiTestFixture fixture) : IClassFixture<UsersApiT
     public async Task CanCreateAndGetUser()
     {
         await _fixture.SeedUsersAsync(); // Ensure clean DB
+
+        // Create a new user via API
         var postResponse = await _fixture.Client!.PostAsJsonAsync("/api/users", TestUsers.Jane);
         postResponse.IsSuccessStatusCode.Should().BeTrue();
         var createdUser = await postResponse.Content.ReadFromJsonAsync<User>();
         createdUser.Should().NotBeNull();
         createdUser!.FirstName.Should().Be(TestUsers.Jane.FirstName);
 
+        // Read the user via API
         var getResponse = await _fixture.Client!.GetAsync($"/api/users/{createdUser.Id}");
         getResponse.IsSuccessStatusCode.Should().BeTrue();
         var fetchedUser = await getResponse.Content.ReadFromJsonAsync<User>();
@@ -34,6 +39,7 @@ public class UsersApiTest(UsersApiTestFixture fixture) : IClassFixture<UsersApiT
         var putResponse = await _fixture.Client!.PutAsJsonAsync($"/api/users/{seededUser.Id}", seededUser);
         putResponse.IsSuccessStatusCode.Should().BeTrue();
 
+        // Read the user via API
         var getResponse = await _fixture.Client!.GetAsync($"/api/users/{seededUser.Id}");
         getResponse.IsSuccessStatusCode.Should().BeTrue();
         var updatedUser = await getResponse.Content.ReadFromJsonAsync<User>();
@@ -50,6 +56,7 @@ public class UsersApiTest(UsersApiTestFixture fixture) : IClassFixture<UsersApiT
         var deleteResponse = await _fixture.Client!.DeleteAsync($"/api/users/{seededUser.Id}");
         deleteResponse.IsSuccessStatusCode.Should().BeTrue();
 
+        // Ensure the user is deleted
         var getResponse = await _fixture.Client.GetAsync($"/api/users/{seededUser.Id}");
         getResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
     }
